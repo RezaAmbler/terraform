@@ -7,7 +7,7 @@ resource "aws_instance" "example" {
   instance_type = "t2.nano"
   key_name = "Reza-Oregon-Key"
 
-  vpc_security_group_ids = "sg-0b091ac3f64ff7114"
+  vpc_security_group_ids = ["sg-0a9164668ad9cc0dd"]
 
   tags { 
   	Name = "Terraform Test"
@@ -22,7 +22,7 @@ resource "aws_instance" "example" {
   }
 
   provisioner "local-exec" {
-  	command = "yum update -y;"
+  	command = "yum install httpd;"
   }
 }
 
