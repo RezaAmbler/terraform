@@ -14,6 +14,10 @@ resource "aws_instance" "example" {
   volume_tags {
   	Name = "Terraform Test"
   }
+
+  provisioner "local-exec" {
+    command = "echo ${aws_instance.example.public_ip} > /tmp/ip_address.txt"
+  }
 }
 
 resource "aws_eip" "example_ip" {
