@@ -5,6 +5,7 @@ provider "aws" {
 resource "aws_instance" "example" {
   ami           = "ami-6cd6f714"
   instance_type = "t2.nano"
+  key_name = "Reza-Oregon-Key"
 
   tags { 
   	Name = "Terraform Test"
