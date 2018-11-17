@@ -1,9 +1,21 @@
+variable "region" {
+  default = "us-west-2"
+}
+
 provider "aws" {
-	region = "us-west-2"
+	region = "${var.region}"
+}
+
+variable "amis" {
+	type = "map"
+	default = {
+		"us-west-2" = "ami-6cd6f714"
+		"us-east-1" = "ami-b374d5a5"
+	}
 }
 
 resource "aws_instance" "example" {
-  ami           = "ami-6cd6f714"
+  ami = "${lookup(var.amis, var.region)}"
   instance_type = "t2.nano"
   key_name = "Reza-Oregon-Key"
 
@@ -22,10 +34,14 @@ resource "aws_instance" "example" {
   }
 
   provisioner "local-exec" {
-  	command = "yum install httpd;"
+  	command = "sudo /usr/bin/yum install httpd;"
   }
 }
 
 resource "aws_eip" "example_ip" {
 	instance = "${aws_instance.example.id}"
+}
+
+output "ip" {
+	value = "${aws_eip.example_ip.public_ip}"
 }
