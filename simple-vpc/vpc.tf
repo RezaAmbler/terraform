@@ -49,13 +49,13 @@ resource "aws_internet_gateway" "default" {
 
 resource "aws_security_group" "nat_sg" {
 	name = "test_vpc_nat"
-	description "a test nat gateway for the private subnet"
+	description = "a test nat gateway for the private subnet"
 
 	egress {
 		from_port = -1
 		to_port = -1
 		protocol = "any"
-		cidr_block = ["0.0.0.0/0"]
+		cidr_blockst = ["0.0.0.0/0"]
 	}	
 
 vpc_id = "${aws_vpc.vpc.id}"
@@ -92,14 +92,14 @@ resource "aws_route_table" "us-west-2a-public" {
 }
 
 resource "aws_route_table_association" "us-west-2a-public" {
-	subnet_id = "${aws_subnet.us-west-2a-public.id"
+	subnet_id = "${aws_subnet.us-west-2a-public.id}"
 	route_table_id = "${aws_route_table.us-west-2a-public.id}"
 }
 
 resource "aws_subnet" "us-west-2a-private" {
 	vpc_id = "${aws_vpc.vpc.id}"
 
-	cidr_block = "${var.private_subnet_cidr"
+	cidr_block = "${var.private_subnet_cidr}"
 	availability_zone = "us-west-2a"
 
 	tags {
