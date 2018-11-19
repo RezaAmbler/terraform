@@ -9,7 +9,7 @@ provider "aws" {
 variable "amis" {
 	type = "map"
 	default = {
-		"us-west-2" = "ami-6cd6f714"
+		"us-west-2" = "ami-0bb5806b2e825a199"
 		"us-east-1" = "ami-b374d5a5"
 	}
 }
