@@ -52,10 +52,10 @@ resource "aws_security_group" "nat_sg" {
 	description = "a test nat gateway for the private subnet"
 
 	egress {
-		from_port = -1
-		to_port = -1
-		protocol = "any"
-		cidr_blockst = ["0.0.0.0/0"]
+		from_port = 0
+		to_port = 0
+		protocol = "tcp"
+		cidr_blocks = ["0.0.0.0/0"]
 	}	
 
 vpc_id = "${aws_vpc.vpc.id}"
@@ -66,6 +66,14 @@ vpc_id = "${aws_vpc.vpc.id}"
 }
 
 # //implement NAT Gateway here, not the example's nat instance
+resource "aws_eip" "ngw-eip" {
+	vpc = true
+}
+
+resource "aws_nat_gateway" "ngw" {
+	allocation_id  = "${aws_eip.ngw-eip.id}"
+	subnet_id      = "${aws_subnet.us-west-2a-public.id}"
+}
 
 resource "aws_subnet" "us-west-2a-public" {
 	vpc_id = "${aws_vpc.vpc.id}"
@@ -112,6 +120,7 @@ resource "aws_route_table" "us-west-2a-private" {
 
 	route {
 		cidr_block = "0.0.0.0/0"
+		nat_gateway_id = "${aws_nat_gateway.ngw.id}"
 	}
 
 	tags {
