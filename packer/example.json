@@ -2,7 +2,7 @@
   "variables": {
     "aws_access_key": "",
     "aws_secret_key": "",
-    "do_api_token"  : "9c47e1fd8b1292d4999fbf28016874272d3804d810da6455e23f7de9f5c0ba17",
+    "do_api_token"  : "",
     "root_password": ""
   },
   "builders": [
@@ -16,6 +16,7 @@
       "shutdown_command": "shutdown -P now",
       "disk_size": "10",
       "disk_type_id" : "0",
+      "skip_compaction": true,
       "guest_os_type": "Ubuntu_64",
       "ssh_wait_timeout": "6m",
       "shutdown_command": "echo {{user `ssh_pass`}} | sudo -S shutdown -P now",
@@ -24,6 +25,11 @@
       "ssh_port": 22,
       "ssh_username": "root",
       "ssh_wait_timeout": "10000s",
+      "remote_type": "esx5",
+      "remote_host": "{{user `esxi_host`}}",
+      "remote_datastore": "{{user `esxi_datastore`}}",
+      "remote_username": "{{user `esxi_username`}}",
+      "remote_password": "{{user `esxi_password`}}",
       "boot_command": [
         "<esc><esc><enter><wait>",
         "/install/vmlinuz noapic ",
