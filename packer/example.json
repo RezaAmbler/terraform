@@ -22,7 +22,18 @@
       },
       "instance_type": "t2.micro",
       "ssh_username": "ubuntu",
-      "ami_name": "packer-example-http {{timestamp}}"
+      "ami_name": "packer-example-http {{timestamp}}",
+      "ami_regions": "us-west-2,us-west-1",
+      "encrypt_boot": true,
+      "tags": {
+        "OS_Version": "OS Goes Here",
+        "Release": "v.1.2.3.4",
+        "Base_AMI_Name": "{{ .SourceAMIName }}",
+        "Extra": "{{ .SourceAMITags.TagName }}"
+      },
+      "snapshot_tags": {
+        "Snapshot_Specification": true
+      }
     }
   ],
     "provisioners": [
