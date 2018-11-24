@@ -1,0 +1,55 @@
+{
+  "variables": {
+    "aws_access_key": "",
+    "aws_secret_key": "",
+    "do_api_token"  : "",
+    "root_password": ""
+  },
+  "builders": [
+    {
+      "type": "vmware-iso",
+      "iso_url": "http://old-releases.ubuntu.com/releases/precise/ubuntu-12.04.2-server-amd64.iso",
+      "iso_checksum": "af5f788aee1b32c4b2634734309cc9e9",
+      "iso_checksum_type": "md5",
+      "ssh_username": "packer",
+      "ssh_password": "packer",
+      "shutdown_command": "shutdown -P now",
+      "disk_size": "10",
+      "disk_type_id" : "0",
+      "skip_compaction": true,
+      "guest_os_type": "Ubuntu-64",
+      "ssh_wait_timeout": "6m",
+      "shutdown_command": "echo {{user `ssh_pass`}} | sudo -S shutdown -P now",
+      "network": "VM vswitch1",
+      "ssh_password": "{{user `root_password`}}",
+      "ssh_port": 22,
+      "ssh_username": "root",
+      "ssh_wait_timeout": "10000s",
+      "remote_type": "esx5",
+      "remote_host": "{{user `esxi_host`}}",
+      "remote_datastore": "{{user `esxi_datastore`}}",
+      "remote_username": "{{user `esxi_username`}}",
+      "remote_password": "{{user `esxi_password`}}",
+      "boot_command": [
+        "<esc><esc><enter><wait>",
+        "/install/vmlinuz noapic ",
+        "preseed/url=http://lethalnetworks.com/ubuntu-preseed.cfg",
+        "debian-installer=en_US auto locale=en_US kbd-chooser/method=us ",
+        "fb=false debconf/frontend=noninteractive ",
+        "keyboard-configuration/modelcode=SKIP keyboard-configuration/layout=USA ",
+        "keyboard-configuration/variant=USA console-setup/ask_detect=false ",
+        "initrd=/install/initrd.gz -- <enter>"
+      ]
+    }
+  ],
+    "provisioners": [
+      {
+        "type": "shell",
+        "inline": [
+          "sleep 30",
+          "sudo apt-get update",
+          "sudo apt-get install -y apache2"
+        ]
+      }
+    ]
+}

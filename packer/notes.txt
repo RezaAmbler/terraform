@@ -1,0 +1,22 @@
+
+
+    ####
+
+,
+    {
+      "type": "digitalocean",
+      "api_token": "{{user `do_api_token`}}",
+      "image": "ubuntu-14-04-x64",
+      "region": "nyc3",
+      "size": "512mb",
+      "ssh_username": "root"
+    },
+    
+    ####
+
+{
+  "esxi_host": ".lethalnetworks.com",
+  "esxi_datastore": "ds2",
+  "esxi_username": "root",
+  "esxi_password": ""
+}
