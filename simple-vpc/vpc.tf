@@ -296,7 +296,7 @@ resource "aws_security_group" "bastion_sg" {
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    = "tcp"
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -310,7 +310,7 @@ resource "aws_security_group" "bastion_sg" {
   vpc_id = "${aws_vpc.vpc.id}"
 
   tags {
-    Name    = "Test NAT SG"
+    Name    = "Bastion SG"
     Project = "PROJ007"
     BU      = "PU"
   }
@@ -338,10 +338,14 @@ resource "aws_instance" "bastion" {
   availability_zone = "${var.az01}"
   subnet_id         = "${aws_subnet.az-01-public.id}"
 
-  security_groups = [
+  # NOTE : https://github.com/hashicorp/terraform/issues/7221#issuecomment-227156871
+  #security_groups = [
+  #  "${aws_security_group.bastion_sg.id}",
+  #]
+
+  vpc_security_group_ids = [
     "${aws_security_group.bastion_sg.id}",
   ]
-
   #key_name = "Reza-East-1"
   key_name = "${var.ssh_key_pair}"
 
@@ -403,11 +407,9 @@ resource "aws_instance" "webapp01" {
   availability_zone = "${var.az01}"
   subnet_id         = "${aws_subnet.az-01-private.id}"
 
-  /*
-  security_groups = [
-    "${aws_security_group.web-app-sg.id}",
-  ]
-  */
+  #vpc_security_group_ids = [
+  #  "${aws_security_group.web-app-sg.id}",
+  #]
 
   #key_name = "Reza-East-1"
   key_name = "${var.ssh_key_pair}"
@@ -419,8 +421,46 @@ resource "aws_instance" "webapp01" {
 }
 
 # WEB APP 2
+resource "aws_instance" "webapp02" {
+  ami               = "${lookup(var.amis, var.aws_region)}"
+  instance_type     = "t2.nano"
+  availability_zone = "${var.az02}"
+  subnet_id         = "${aws_subnet.az-02-private.id}"
+
+  #vpc_security_group_ids = [
+  #  "${aws_security_group.web-app-sg.id}",
+  #]
+
+  #key_name = "Reza-East-1"
+  key_name = "${var.ssh_key_pair}"
+  tags {
+    Name    = "WEB APP 02"
+    Project = "PROJ007"
+    BU      = "PU"
+  }
+}
+
 # END WEB APP 2
 # END INSTANCES
+
+# RDS INSTANCE 
+
+/*
+resource "aws_db_instance" "default" {
+  allocated_storage    = 10
+  storage_type         = "gp2"
+  engine               = "mysql"
+  engine_version       = "5.7"
+  instance_class       = "db.t2.micro"
+  name                 = "RDS DB TEST"
+  username             = "foo"
+  password             = "foobarbaz"
+  parameter_group_name = "default.mysql5.7"
+  availability_zone    = "${var.az01}"
+}
+*/
+
+# END RDS INSTANCE
 
 # This presents nice output to the user / consumer once
 # terraform has finished the job and has all the state information
