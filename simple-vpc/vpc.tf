@@ -12,34 +12,11 @@
 # Variables to be used through the TF file
 # These can also be defined in another file and passed into
 # the terraform file for consumption
+
+# USER DEFINED
 variable "aws_region" {
   description = "EC2 Region for the VPC"
   default     = "us-east-1"
-}
-
-variable "amis" {
-  description = "AMIs by region"
-
-  default = {
-    "us-west-2" = "ami-0bb5806b2e825a199"
-    "us-east-1" = "ami-b374d5a5"
-    "eu-west-1" = "ami-f1810f86"          # ubuntu 14.04 LTS
-  }
-}
-
-variable "vpc_cidr" {
-  description = "CIDR for the whole VPC"
-  default     = "192.168.200.0/24"
-}
-
-variable "public_subnet_cidr" {
-  description = "CIDR for the Public Subnet"
-  default     = "192.168.200.0/25"
-}
-
-variable "private_subnet_cidr" {
-  description = "CIDR for the Private Subnet"
-  default     = "192.168.200.128/25"
 }
 
 variable "az01" {
@@ -52,6 +29,49 @@ variable "az02" {
 
 variable "az03" {
   default = "us-east-1c"
+}
+
+variable "ssh_key_pair" {
+  description = "SSH Key Pair to be used for EC2"
+  default     = "Reza-East-1"
+}
+
+variable "amis" {
+  description = "AMIs by region"
+
+  default = {
+    "us-west-2" = "ami-01bbe152bf19d0289"
+    "us-east-1" = "ami-009d6802948d06e52" # AWS Linux 2
+
+    #"eu-west-1" = "ami-f1810f86"          # ubuntu 14.04 LTS
+  }
+}
+
+# END USER DEFINED
+
+variable "vpc_cidr" {
+  description = "CIDR for the whole VPC"
+  default     = "192.168.200.0/24"
+}
+
+variable "public_subnet_cidr_01" {
+  description = "CIDR for the Public Subnet"
+  default     = "192.168.200.0/26"
+}
+
+variable "public_subnet_cidr_02" {
+  description = "CIDR for the Public Subnet"
+  default     = "192.168.200.64/26"
+}
+
+variable "private_subnet_cidr_01" {
+  description = "CIDR for the Private Subnet"
+  default     = "192.168.200.128/26"
+}
+
+variable "private_subnet_cidr_02" {
+  description = "CIDR for the Private Subnet"
+  default     = "192.168.200.192/26"
 }
 
 # END VARIABLES
@@ -70,6 +90,8 @@ resource "aws_vpc" "vpc" {
   cidr_block           = "${var.vpc_cidr}"
   enable_dns_hostnames = true
 
+  #main_route_table     = "${aws_route_table.az-01-public.id}"
+
   tags {
     Name    = "VPC TEST"
     Project = "PROJ007"
@@ -87,6 +109,7 @@ resource "aws_internet_gateway" "default" {
   }
 }
 
+/*
 resource "aws_security_group" "nat_sg" {
   name        = "test_vpc_nat"
   description = "a test nat gateway for the private subnet"
@@ -106,6 +129,7 @@ resource "aws_security_group" "nat_sg" {
     BU      = "PU"
   }
 }
+*/
 
 # EIP needed for the NAT Gateway
 resource "aws_eip" "ngw-eip" {
@@ -121,6 +145,7 @@ resource "aws_eip" "ngw-eip" {
 }
 
 # //implement NAT Gateway here, not the example's nat instance (deprecated)
+
 resource "aws_nat_gateway" "ngw" {
   allocation_id = "${aws_eip.ngw-eip.id}"
   subnet_id     = "${aws_subnet.az-01-public.id}"
@@ -141,17 +166,18 @@ resource "aws_subnet" "az-01-public" {
   vpc_id = "${aws_vpc.vpc.id}"
 
   # variable defined at the top
-  cidr_block        = "${var.public_subnet_cidr}"
+  cidr_block        = "${var.public_subnet_cidr_01}"
   availability_zone = "${var.az01}"
 
   tags {
-    Name    = "Public Subnet Test VPC"
+    Name    = "Public Subnet AZ01"
     Project = "PROJ007"
     BU      = "PU"
   }
 }
 
 # Create a Route Table, assign it to the VPC ID
+# use a better name for the RT since it's not AZ specific
 resource "aws_route_table" "az-01-public" {
   vpc_id = "${aws_vpc.vpc.id}"
 
@@ -161,7 +187,7 @@ resource "aws_route_table" "az-01-public" {
   }
 
   tags {
-    Name    = "Test Public Subnet"
+    Name    = "Public Subnet"
     Project = "PROJ007"
     BU      = "PU"
   }
@@ -175,16 +201,53 @@ resource "aws_route_table_association" "az-01-public" {
   route_table_id = "${aws_route_table.az-01-public.id}"
 }
 
+# Public Subnet #2
+resource "aws_subnet" "az-02-public" {
+  vpc_id = "${aws_vpc.vpc.id}"
+
+  cidr_block        = "${var.public_subnet_cidr_02}"
+  availability_zone = "${var.az02}"
+
+  tags {
+    Name    = "Public Subnet AZ02"
+    Project = "PROJ007"
+    BU      = "PU"
+  }
+}
+
+resource "aws_route_table_association" "az-02-public" {
+  subnet_id      = "${aws_subnet.az-02-public.id}"
+  route_table_id = "${aws_route_table.az-01-public.id}"
+
+  # better name for the route table, not az specific
+}
+
+# END Public Subnet
+
 # us-west-2a-private
 # Private Subnet
 resource "aws_subnet" "az-01-private" {
   vpc_id = "${aws_vpc.vpc.id}"
 
-  cidr_block        = "${var.private_subnet_cidr}"
+  cidr_block        = "${var.private_subnet_cidr_01}"
   availability_zone = "${var.az01}"
 
   tags {
-    Name    = "Private Subnet Test VPC"
+    Name    = "Private Subnet AZ01"
+    Project = "PROJ007"
+    BU      = "PU"
+  }
+}
+
+resource "aws_subnet" "az-02-private" {
+  vpc_id = "${aws_vpc.vpc.id}"
+
+  cidr_block = "${var.private_subnet_cidr_02}"
+
+  availability_zone = "${var.az02}"
+
+  tags {
+    Name    = "Private Subnet AZ02"
     Project = "PROJ007"
     BU      = "PU"
   }
@@ -216,30 +279,148 @@ resource "aws_route_table_association" "az-01-private" {
   route_table_id = "${aws_route_table.az-01-private.id}"
 }
 
-resource "aws_eip" "int-001-eip" {
-  instance = "${aws_instance.proj007_instance.id}"
+resource "aws_route_table_association" "az-02-private-rtb" {
+  subnet_id      = "${aws_subnet.az-02-private.id}"
+  route_table_id = "${aws_route_table.az-01-private.id}"
 }
 
-resource "aws_instance" "proj007_instance" {
-  ami           = "${lookup(var.amis, var.aws_region)}"
-  instance_type = "t2.nano"
+# END VPC
 
-  provisioner "local-exec" {
-    command = "echo ${aws_instance.proj007_instance.public_ip} > /tmp/ip_address.txt"
+# BEGIN INSTANCES
+#BASTION
+
+resource "aws_security_group" "bastion_sg" {
+  name        = "bastion-host-sg"
+  description = "bastion host aws_security_group"
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  provisioner "local-exec" {
-    command = "sudo /usr/bin/yum install httpd;"
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  key_name = "Reza-East-1"
+  vpc_id = "${aws_vpc.vpc.id}"
 
   tags {
-    Name    = "ec2_instance_example"
+    Name    = "Test NAT SG"
     Project = "PROJ007"
     BU      = "PU"
   }
 }
+
+resource "aws_eip" "bastion_eip" {
+  vpc = true
+
+  #instance = "${aws_instance.proj007_instance.id}"
+  tags {
+    Name    = "Test Public Subnet"
+    Project = "PROJ007"
+    BU      = "PU"
+  }
+}
+
+resource "aws_eip_association" "bastion_eip" {
+  instance_id   = "${aws_instance.bastion.id}"
+  allocation_id = "${aws_eip.bastion_eip.id}"
+}
+
+resource "aws_instance" "bastion" {
+  ami               = "${lookup(var.amis, var.aws_region)}"
+  instance_type     = "t2.nano"
+  availability_zone = "${var.az01}"
+  subnet_id         = "${aws_subnet.az-01-public.id}"
+
+  security_groups = [
+    "${aws_security_group.bastion_sg.id}",
+  ]
+
+  #key_name = "Reza-East-1"
+  key_name = "${var.ssh_key_pair}"
+
+  #provisioner "local-exec" {
+  #  command = "sudo /usr/bin/yum -y update;"
+  #}
+
+
+  #provisioner "local-exec" {
+  #  command = "echo ${aws_instance.proj007_instance.public_ip} > /var/www/html/index.html"
+  #}
+
+  tags {
+    Name    = "ec2_bastion_example"
+    Project = "PROJ007"
+    BU      = "PU"
+  }
+}
+
+# END BASTION
+
+# WEB APP 1
+
+resource "aws_security_group" "web-app-sg" {
+  name        = "web-app-sg"
+  description = "Web App Server Security Group"
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 0
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+
+    /*
+    security_groups = [
+      "${aws_security_group.bastion_sg.id}",
+    ]
+    */
+  }
+
+  tags {
+    Name    = "WEB APP NAT SG"
+    Project = "PROJ007"
+    BU      = "PU"
+  }
+}
+
+# END WEB APP 1
+resource "aws_instance" "webapp01" {
+  ami               = "${lookup(var.amis, var.aws_region)}"
+  instance_type     = "t2.nano"
+  availability_zone = "${var.az01}"
+  subnet_id         = "${aws_subnet.az-01-private.id}"
+
+  /*
+  security_groups = [
+    "${aws_security_group.web-app-sg.id}",
+  ]
+  */
+
+  #key_name = "Reza-East-1"
+  key_name = "${var.ssh_key_pair}"
+  tags {
+    Name    = "WEB APP 01"
+    Project = "PROJ007"
+    BU      = "PU"
+  }
+}
+
+# WEB APP 2
+# END WEB APP 2
+# END INSTANCES
 
 # This presents nice output to the user / consumer once
 # terraform has finished the job and has all the state information
