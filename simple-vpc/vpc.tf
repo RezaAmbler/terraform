@@ -13,6 +13,9 @@
 # These can also be defined in another file and passed into
 # the terraform file for consumption
 
+#DATA
+data "aws_availability_zones" "all" {}
+
 # USER DEFINED
 variable "aws_region" {
   description = "EC2 Region for the VPC"
@@ -47,6 +50,11 @@ variable "amis" {
   }
 }
 
+variable "http_server_port" {
+  description = "http web server listener port"
+  default     = "80"
+}
+
 # END USER DEFINED
 
 variable "vpc_cidr" {
@@ -74,13 +82,18 @@ variable "private_subnet_cidr_02" {
   default     = "192.168.200.192/26"
 }
 
+variable "aws_profile" {
+  description = "AWS profile to use"
+}
+
 # END VARIABLES
 
 # Define the provider, this can be one of a long list of Cloud providers
 # AWS , Azure, GCP, VMWare, etc..
 # list here : https://www.terraform.io/docs/providers/
 provider "aws" {
-  region = "${var.aws_region}"
+  region  = "${var.aws_region}"
+  profile = "${var.aws_profile}"
 }
 
 # Here we have multiple resource blocks. 
@@ -285,7 +298,6 @@ resource "aws_route_table_association" "az-02-private-rtb" {
 }
 
 # END VPC
-
 # BEGIN INSTANCES
 #BASTION
 
@@ -400,12 +412,12 @@ resource "aws_security_group" "web-app-sg" {
   }
 }
 
-# END WEB APP 1
 resource "aws_instance" "webapp01" {
-  ami               = "${lookup(var.amis, var.aws_region)}"
-  instance_type     = "t2.nano"
-  availability_zone = "${var.az01}"
-  subnet_id         = "${aws_subnet.az-01-private.id}"
+  ami                         = "${lookup(var.amis, var.aws_region)}"
+  instance_type               = "t2.nano"
+  availability_zone           = "${var.az01}"
+  subnet_id                   = "${aws_subnet.az-01-private.id}"
+  associate_public_ip_address = true
 
   #vpc_security_group_ids = [
   #  "${aws_security_group.web-app-sg.id}",
@@ -420,12 +432,15 @@ resource "aws_instance" "webapp01" {
   }
 }
 
+# END WEB APP 1
+
 # WEB APP 2
 resource "aws_instance" "webapp02" {
-  ami               = "${lookup(var.amis, var.aws_region)}"
-  instance_type     = "t2.nano"
-  availability_zone = "${var.az02}"
-  subnet_id         = "${aws_subnet.az-02-private.id}"
+  ami                         = "${lookup(var.amis, var.aws_region)}"
+  instance_type               = "t2.nano"
+  availability_zone           = "${var.az02}"
+  subnet_id                   = "${aws_subnet.az-02-private.id}"
+  associate_public_ip_address = true
 
   #vpc_security_group_ids = [
   #  "${aws_security_group.web-app-sg.id}",
@@ -462,9 +477,64 @@ resource "aws_db_instance" "default" {
 
 # END RDS INSTANCE
 
+resource "aws_elb" "elb" {
+  name               = "terraform-elb-example"
+  availability_zones = ["${data.aws_availability_zones.all.names}"]
+  security_groups    = ["${aws_security_group.elb_sg.id}"]
+
+  listener {
+    lb_port           = 80
+    lb_protocol       = "http"
+    instance_port     = 80
+    instance_protocol = "http"
+  }
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 30
+    interval            = 30
+    target              = "HTTP:${var.http_server_port}/"
+  }
+}
+
+resource "aws_security_group" "elb_sg" {
+  name = "terraform-elb-example-sg"
+
+  ingress {
+    from_port   = "${var.http_server_port}"
+    to_port     = "${var.http_server_port}"
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 # This presents nice output to the user / consumer once
 # terraform has finished the job and has all the state information
 output "vpc_id" {
   description = "The ID of the VPC"
   value       = "${aws_vpc.vpc.id}"
+}
+
+output "bastion_eip_ip" {
+  value = "${aws_eip.bastion_eip.public_ip}"
+}
+
+output "webapp01_public_ip" {
+  value = "${aws_instance.webapp01.public_ip}"
+}
+
+output "webapp02_public_ip" {
+  value = "${aws_instance.webapp02.public_ip}"
+}
+
+output "elb_dns_name" {
+  value = "${aws_elb.elb.dns_name}"
 }
